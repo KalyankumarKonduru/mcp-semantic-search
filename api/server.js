@@ -6,7 +6,16 @@ const dotenv = require('dotenv');
 const routes = require('./routes');
 
 // Load environment variables
-dotenv.config();
+// At the very top of api/server.js
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+// Then add the debug logging
+console.log('Environment variables:');
+console.log('API_KEY:', process.env.API_KEY ? 'Set (length: ' + process.env.API_KEY.length + ')' : 'Not set');
+console.log('SERVICE_API_KEY:', process.env.SERVICE_API_KEY ? 'Set (length: ' + process.env.SERVICE_API_KEY.length + ')' : 'Not set');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('SKIP_AUTH_IN_DEV:', process.env.SKIP_AUTH_IN_DEV);
 
 // Create Express app
 const app = express();

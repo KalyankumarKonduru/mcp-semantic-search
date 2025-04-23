@@ -1,39 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Heading, 
-  Text,
-  Grid,
-  GridItem,
-  Divider,
-  Button,
-  useToast,
-  Spinner,
-  Center,
-  VStack,
-  Badge,
-  Flex,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  IconButton,
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton
-} from '@chakra-ui/react';
-import { DeleteIcon, ViewIcon } from '@chakra-ui/icons';
 import DocumentUploader from '../components/DocumentUploader';
 import { documentApi } from '../api';
+import './DocumentManagementPage.css';
 
 const DocumentManagementPage = () => {
   const [documents, setDocuments] = useState([]);
@@ -41,8 +9,8 @@ const DocumentManagementPage = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Fetch documents on initial load
   useEffect(() => {
@@ -66,13 +34,7 @@ const DocumentManagementPage = () => {
       
     } catch (error) {
       console.error('Error fetching documents:', error);
-      toast({
-        title: 'Error fetching documents',
-        description: error.response?.data?.error || 'An error occurred',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      showToast('Error fetching documents', error.response?.data?.error || 'An error occurred', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -90,26 +52,14 @@ const DocumentManagementPage = () => {
     
     try {
       await documentApi.deleteDocument(id);
-      
-      toast({
-        title: 'Document deleted',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
+      showToast('Document deleted', '', 'success');
       
       // Refresh document list
       fetchDocuments(1);
       
     } catch (error) {
       console.error('Error deleting document:', error);
-      toast({
-        title: 'Error deleting document',
-        description: error.response?.data?.error || 'An error occurred',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      showToast('Error deleting document', error.response?.data?.error || 'An error occurred', 'error');
     }
   };
 
@@ -117,16 +67,10 @@ const DocumentManagementPage = () => {
     try {
       const response = await documentApi.getDocument(id);
       setSelectedDocument(response.data);
-      onOpen();
+      setIsModalOpen(true);
     } catch (error) {
       console.error('Error fetching document:', error);
-      toast({
-        title: 'Error fetching document',
-        description: error.response?.data?.error || 'An error occurred',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      showToast('Error fetching document', error.response?.data?.error || 'An error occurred', 'error');
     }
   };
 
@@ -134,181 +78,201 @@ const DocumentManagementPage = () => {
     fetchDocuments(page + 1);
   };
 
+  const showToast = (title, description, status) => {
+    setToastMessage({
+      title,
+      description,
+      status
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
   return (
-    <Container maxW="1200px">
-      <Box mb={8}>
-        <Heading size="lg" mb={2}>Document Management</Heading>
-        <Text color="gray.600">
+    <div className="document-management-container">
+      <div className="document-management-header">
+        <h1 className="page-title">Document Management</h1>
+        <p className="page-description">
           Upload, view, and manage EHR documents for semantic search
-        </Text>
-      </Box>
+        </p>
+      </div>
       
-      <Grid templateColumns={{ base: '1fr', md: '1fr 2fr' }} gap={8}>
-        <GridItem>
-          <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
+      <div className="document-management-grid">
+        <div className="document-management-uploader">
+          <div className="card">
             <DocumentUploader onUploadComplete={handleUploadComplete} />
-          </Box>
-        </GridItem>
+          </div>
+        </div>
         
-        <GridItem>
-          <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-            <Heading size="md" mb={4}>Document List</Heading>
+        <div className="document-management-list">
+          <div className="card">
+            <h2 className="section-title">Document List</h2>
             
             {isLoading && page === 1 ? (
-              <Center p={10}>
-                <Spinner size="xl" />
-              </Center>
+              <div className="loading-container">
+                <div className="spinner"></div>
+              </div>
             ) : documents.length === 0 ? (
-              <Center p={10}>
-                <VStack>
-                  <Text>No documents found</Text>
-                  <Text fontSize="sm" color="gray.500">
-                    Upload documents to start using semantic search
-                  </Text>
-                </VStack>
-              </Center>
+              <div className="empty-state">
+                <p>No documents found</p>
+                <p className="empty-state-description">
+                  Upload documents to start using semantic search
+                </p>
+              </div>
             ) : (
               <>
-                <TableContainer>
-                  <Table variant="simple">
-                    <Thead>
-                      <Tr>
-                        <Th>Document</Th>
-                        <Th>Type</Th>
-                        <Th>Date</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
+                <div className="table-container">
+                  <table className="document-table">
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {documents.map((doc) => (
-                        <Tr key={doc.id}>
-                          <Td>{doc.title || doc.id}</Td>
-                          <Td>
-                            <Badge colorScheme="blue">
+                        <tr key={doc.id}>
+                          <td>{doc.title || doc.id}</td>
+                          <td>
+                            <span className="badge badge-blue">
                               {doc.metadata?.note_type || 'Document'}
-                            </Badge>
-                          </Td>
-                          <Td>{doc.metadata?.date || 'N/A'}</Td>
-                          <Td>
-                            <Flex gap={2}>
-                              <IconButton
-                                aria-label="View document"
-                                icon={<ViewIcon />}
-                                size="sm"
-                                colorScheme="blue"
+                            </span>
+                          </td>
+                          <td>{doc.metadata?.date || 'N/A'}</td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                className="icon-button view-button"
                                 onClick={() => handleViewDocument(doc.id)}
-                              />
-                              <IconButton
-                                aria-label="Delete document"
-                                icon={<DeleteIcon />}
-                                size="sm"
-                                colorScheme="red"
+                                aria-label="View document"
+                              >
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z"></path>
+                                  <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                              </button>
+                              <button
+                                className="icon-button delete-button"
                                 onClick={() => handleDeleteDocument(doc.id)}
-                              />
-                            </Flex>
-                          </Td>
-                        </Tr>
+                                aria-label="Delete document"
+                              >
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
                       ))}
-                    </Tbody>
-                  </Table>
-                </TableContainer>
+                    </tbody>
+                  </table>
+                </div>
                 
                 {hasMore && (
-                  <Center mt={4}>
-                    <Button 
-                      onClick={loadMoreDocuments} 
-                      isLoading={isLoading}
-                      size="sm"
+                  <div className="load-more">
+                    <button 
+                      className="load-more-button"
+                      onClick={loadMoreDocuments}
+                      disabled={isLoading}
                     >
-                      Load More
-                    </Button>
-                  </Center>
+                      {isLoading ? 'Loading...' : 'Load More'}
+                    </button>
+                  </div>
                 )}
               </>
             )}
-          </Box>
-        </GridItem>
-      </Grid>
+          </div>
+        </div>
+      </div>
       
       {/* Document view modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            {selectedDocument?.title || 'Document Details'}
-            {selectedDocument?.metadata?.note_type && (
-              <Badge ml={2} colorScheme="blue">
-                {selectedDocument.metadata.note_type}
-              </Badge>
-            )}
-          </ModalHeader>
-          <ModalCloseButton />
-          
-          <ModalBody>
-            {selectedDocument ? (
-              <Box>
-                <Flex wrap="wrap" gap={2} mb={4}>
-                  {selectedDocument.metadata?.date && (
-                    <Badge colorScheme="green">Date: {selectedDocument.metadata.date}</Badge>
-                  )}
-                  {selectedDocument.metadata?.department && (
-                    <Badge colorScheme="purple">Dept: {selectedDocument.metadata.department}</Badge>
-                  )}
-                  {selectedDocument.id && (
-                    <Badge colorScheme="gray">ID: {selectedDocument.id}</Badge>
-                  )}
-                </Flex>
-                
-                <Divider mb={4} />
-                
-                <Box 
-                  p={4} 
-                  borderRadius="md" 
-                  bg="gray.50" 
-                  maxHeight="50vh" 
-                  overflowY="auto"
-                >
-                  <Text whiteSpace="pre-wrap">{selectedDocument.text}</Text>
-                </Box>
-                
-                {selectedDocument.chunks && selectedDocument.chunks.length > 0 && (
-                  <Box mt={4}>
-                    <Heading size="sm" mb={2}>Document Chunks</Heading>
-                    <Text fontSize="sm" color="gray.600" mb={2}>
-                      This document has been split into {selectedDocument.chunks.length} chunks for semantic search
-                    </Text>
-                    
-                    {selectedDocument.chunks.map((chunk, idx) => (
-                      <Box 
-                        key={idx} 
-                        p={2} 
-                        borderWidth="1px" 
-                        borderRadius="md" 
-                        mt={2}
-                        fontSize="sm"
-                      >
-                        <Text fontWeight="bold">Chunk {idx + 1}</Text>
-                        <Text noOfLines={2}>{chunk.text}</Text>
-                      </Box>
-                    ))}
-                  </Box>
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {selectedDocument?.title || 'Document Details'}
+                {selectedDocument?.metadata?.note_type && (
+                  <span className="badge badge-blue modal-badge">
+                    {selectedDocument.metadata.note_type}
+                  </span>
                 )}
-              </Box>
-            ) : (
-              <Center p={10}>
-                <Spinner />
-              </Center>
-            )}
-          </ModalBody>
-          
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Container>
+              </h2>
+              <button className="modal-close" onClick={closeModal}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              {selectedDocument ? (
+                <div>
+                  <div className="badge-container">
+                    {selectedDocument.metadata?.date && (
+                      <span className="badge badge-green">Date: {selectedDocument.metadata.date}</span>
+                    )}
+                    {selectedDocument.metadata?.department && (
+                      <span className="badge badge-purple">Dept: {selectedDocument.metadata.department}</span>
+                    )}
+                    {selectedDocument.id && (
+                      <span className="badge badge-gray">ID: {selectedDocument.id}</span>
+                    )}
+                  </div>
+                  
+                  <hr className="divider" />
+                  
+                  <div className="document-content">
+                    <pre>{selectedDocument.text}</pre>
+                  </div>
+                  
+                  {selectedDocument.chunks && selectedDocument.chunks.length > 0 && (
+                    <div className="chunks-section">
+                      <h3 className="chunks-title">Document Chunks</h3>
+                      <p className="chunks-description">
+                        This document has been split into {selectedDocument.chunks.length} chunks for semantic search
+                      </p>
+                      
+                      {selectedDocument.chunks.map((chunk, idx) => (
+                        <div key={idx} className="chunk-item">
+                          <div className="chunk-header">Chunk {idx + 1}</div>
+                          <p className="chunk-text">{chunk.text.substring(0, 100)}...</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="loading-container">
+                  <div className="spinner"></div>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-footer">
+              <button className="primary-button" onClick={closeModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`toast-notification toast-${toastMessage.status}`}>
+          <div className="toast-title">{toastMessage.title}</div>
+          {toastMessage.description && (
+            <div className="toast-description">{toastMessage.description}</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

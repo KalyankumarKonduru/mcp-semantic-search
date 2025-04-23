@@ -1,20 +1,7 @@
+// src/components/DocumentUploader.jsx
 import React, { useState, useRef } from 'react';
-import { 
-  Box, 
-  Button, 
-  FormControl, 
-  FormLabel, 
-  Input, 
-  Textarea,
-  VStack,
-  Heading,
-  useToast,
-  Progress,
-  Text,
-  Select,
-  HStack
-} from '@chakra-ui/react';
 import { documentApi } from '../api';
+import './DocumentUploader.css';
 
 const DocumentUploader = ({ onUploadComplete }) => {
   const [file, setFile] = useState(null);
@@ -23,8 +10,8 @@ const DocumentUploader = ({ onUploadComplete }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [noteType, setNoteType] = useState('progress_note');
   const [department, setDepartment] = useState('');
+  const [toastMessage, setToastMessage] = useState(null);
   const fileInputRef = useRef(null);
-  const toast = useToast();
 
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
@@ -48,13 +35,7 @@ const DocumentUploader = ({ onUploadComplete }) => {
     
     // Validation
     if (!file && !text.trim()) {
-      toast({
-        title: 'Input required',
-        description: 'Please upload a file or enter text',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true
-      });
+      showToast('Input required', 'Please upload a file or enter text', 'warning');
       return;
     }
     
@@ -88,13 +69,7 @@ const DocumentUploader = ({ onUploadComplete }) => {
       
       setUploadProgress(100);
       
-      toast({
-        title: 'Document uploaded',
-        description: 'Document has been successfully processed',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
+      showToast('Document uploaded', 'Document has been successfully processed', 'success');
       
       // Reset form
       setText('');
@@ -110,13 +85,7 @@ const DocumentUploader = ({ onUploadComplete }) => {
       
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: 'Upload failed',
-        description: error.response?.data?.error || 'An error occurred during upload',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      showToast('Upload failed', error.response?.data?.error || 'An error occurred during upload', 'error');
     } finally {
       setIsLoading(false);
       // Reset progress after a delay
@@ -126,14 +95,29 @@ const DocumentUploader = ({ onUploadComplete }) => {
     }
   };
 
+  const showToast = (title, description, status) => {
+    setToastMessage({
+      title,
+      description,
+      status
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
   return (
-    <Box as="form" onSubmit={handleSubmit} width="full">
-      <VStack spacing={4} align="stretch">
-        <Heading size="md">Upload Document</Heading>
+    <form onSubmit={handleSubmit} className="document-uploader-form">
+      <div className="uploader-content">
+        <h2 className="section-title">Upload Document</h2>
         
-        <FormControl>
-          <FormLabel>Document Type</FormLabel>
-          <Select 
+        <div className="form-group">
+          <label htmlFor="document-type">Document Type</label>
+          <select 
+            id="document-type"
+            className="form-select"
             value={noteType} 
             onChange={(e) => setNoteType(e.target.value)}
           >
@@ -143,63 +127,77 @@ const DocumentUploader = ({ onUploadComplete }) => {
             <option value="lab_report">Lab Report</option>
             <option value="radiology_report">Radiology Report</option>
             <option value="other">Other</option>
-          </Select>
-        </FormControl>
+          </select>
+        </div>
         
-        <FormControl>
-          <FormLabel>Department (Optional)</FormLabel>
-          <Input 
+        <div className="form-group">
+          <label htmlFor="department">Department (Optional)</label>
+          <input 
+            id="department"
+            type="text"
+            className="form-input"
             placeholder="e.g., Cardiology, Neurology, etc."
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
           />
-        </FormControl>
+        </div>
         
-        <FormControl>
-          <FormLabel>Upload File</FormLabel>
-          <Input
+        <div className="form-group">
+          <label htmlFor="file-upload">Upload File</label>
+          <input
+            id="file-upload"
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             accept=".txt,.pdf,.doc,.docx"
-            p={1}
+            className="file-input"
           />
-          <Text fontSize="xs" color="gray.500" mt={1}>
+          <p className="file-input-help">
             Supported formats: TXT, PDF, DOC, DOCX
-          </Text>
-        </FormControl>
+          </p>
+        </div>
         
-        <Text fontWeight="bold" textAlign="center">OR</Text>
+        <div className="divider-text">OR</div>
         
-        <FormControl>
-          <FormLabel>Enter Text</FormLabel>
-          <Textarea
+        <div className="form-group">
+          <label htmlFor="document-text">Enter Text</label>
+          <textarea
+            id="document-text"
+            className="form-textarea"
             placeholder="Paste or type document text here..."
             value={text}
             onChange={handleTextChange}
-            minHeight="200px"
-          />
-        </FormControl>
+          ></textarea>
+        </div>
         
         {uploadProgress > 0 && (
-          <Progress 
-            value={uploadProgress} 
-            size="sm" 
-            colorScheme="blue" 
-            borderRadius="md"
-          />
+          <div className="progress-bar-container">
+            <div 
+              className="progress-bar" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
         )}
         
-        <Button
+        <button
           type="submit"
-          colorScheme="blue"
-          isLoading={isLoading}
-          loadingText="Uploading..."
+          className="upload-button"
+          disabled={isLoading}
         >
-          Upload Document
-        </Button>
-      </VStack>
-    </Box>
+          {isLoading ? 'Uploading...' : 'Upload Document'}
+        </button>
+      </div>
+      
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`toast-notification toast-${toastMessage.status}`}>
+          <div className="toast-title">{toastMessage.title}</div>
+          {toastMessage.description && (
+            <div className="toast-description">{toastMessage.description}</div>
+          )}
+        </div>
+      )}
+    </form>
   );
 };
 

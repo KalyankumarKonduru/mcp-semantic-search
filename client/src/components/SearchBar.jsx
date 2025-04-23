@@ -1,34 +1,18 @@
+// src/components/SearchBar.jsx
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Input, 
-  Button, 
-  Flex, 
-  FormControl,
-  FormLabel,
-  Switch,
-  useToast,
-  IconButton
-} from '@chakra-ui/react';
-import { SearchIcon } from '@chakra-ui/icons';
+import './SearchBar.css';
 
 const SearchBar = ({ onSearch, isLoading }) => {
   const [query, setQuery] = useState('');
   const [isHybridSearch, setIsHybridSearch] = useState(false);
   const [keywords, setKeywords] = useState('');
-  const toast = useToast();
+  const [toastMessage, setToastMessage] = useState(null);
 
   const handleSearch = (e) => {
     e.preventDefault();
     
     if (!query && (!isHybridSearch || !keywords)) {
-      toast({
-        title: 'Search query required',
-        description: 'Please enter a search query',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true
-      });
+      showToast('Search query required', 'Please enter a search query', 'warning');
       return;
     }
     
@@ -39,52 +23,83 @@ const SearchBar = ({ onSearch, isLoading }) => {
     });
   };
 
+  const showToast = (title, description, status) => {
+    setToastMessage({
+      title,
+      description,
+      status
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
   return (
-    <Box as="form" onSubmit={handleSearch} width="full">
-      <Flex direction="column" gap={3}>
-        <FormControl display="flex" alignItems="center" justifyContent="flex-end">
-          <FormLabel htmlFor="hybrid-search" mb="0" fontSize="sm">
-            Enable hybrid search
-          </FormLabel>
-          <Switch 
-            id="hybrid-search" 
-            colorScheme="blue"
-            isChecked={isHybridSearch}
-            onChange={(e) => setIsHybridSearch(e.target.checked)}
-          />
-        </FormControl>
+    <div className="search-bar-wrapper">
+      <form onSubmit={handleSearch} className="search-form">
+        <div className="search-options">
+          <label className="hybrid-search-label">
+            <span>Enable hybrid search</span>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                id="hybrid-search"
+                checked={isHybridSearch}
+                onChange={(e) => setIsHybridSearch(e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </div>
+          </label>
+        </div>
         
-        <Flex gap={2}>
-          <Input
+        <div className="search-input-group">
+          <input
+            type="text"
+            className="search-input"
             placeholder="Enter semantic search query..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            size="lg"
-            borderRadius="md"
           />
           
-          <IconButton
+          <button
             type="submit"
-            aria-label="Search"
-            icon={<SearchIcon />}
-            size="lg"
-            colorScheme="blue"
-            isLoading={isLoading}
-            borderRadius="md"
-          />
-        </Flex>
+            className="search-button"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="search-spinner"></div>
+            ) : (
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            )}
+          </button>
+        </div>
         
         {isHybridSearch && (
-          <Input
+          <input
+            type="text"
+            className="keywords-input"
             placeholder="Additional keywords (optional)..."
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
-            size="md"
-            mt={2}
           />
         )}
-      </Flex>
-    </Box>
+      </form>
+      
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`toast-notification toast-${toastMessage.status}`}>
+          <div className="toast-title">{toastMessage.title}</div>
+          {toastMessage.description && (
+            <div className="toast-description">{toastMessage.description}</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

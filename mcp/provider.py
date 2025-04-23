@@ -5,7 +5,7 @@ import time
 import os
 import aiohttp
 
-from .schema import (
+from schema import (
     MCPContextRequest, 
     MCPContextResponse, 
     MCPContextItem,

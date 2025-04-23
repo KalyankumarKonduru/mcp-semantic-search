@@ -8,12 +8,16 @@ const api = axios.create({
 
 // Add API key to all requests if available
 api.interceptors.request.use(config => {
-  const apiKey = localStorage.getItem('apiKey');
+  // first try localStorage (user-saved), otherwise use env var
+  const apiKey = localStorage.getItem('apiKey') 
+                  || process.env.REACT_APP_API_KEY;
   if (apiKey) {
     config.headers['x-api-key'] = apiKey;
   }
   return config;
 });
+
+
 
 // Document management API
 export const documentApi = {

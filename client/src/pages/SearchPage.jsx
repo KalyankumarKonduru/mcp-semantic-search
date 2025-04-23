@@ -1,20 +1,9 @@
+// src/pages/SearchPage.jsx
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Container, 
-  Heading, 
-  Text, 
-  Divider,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  useToast
-} from '@chakra-ui/react';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import { searchApi, mcpApi } from '../api';
+import './SearchPage.css';
 
 const SearchPage = () => {
   const [results, setResults] = useState([]);
@@ -24,7 +13,7 @@ const SearchPage = () => {
     executionTimeMs: 0
   });
   const [activeTab, setActiveTab] = useState(0);
-  const toast = useToast();
+  const [toastMessage, setToastMessage] = useState(null);
 
   const handleSearch = async (searchParams) => {
     setIsLoading(true);
@@ -74,13 +63,7 @@ const SearchPage = () => {
       
     } catch (error) {
       console.error('Search error:', error);
-      toast({
-        title: 'Search failed',
-        description: error.response?.data?.error || 'An error occurred during search',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      showToast('Search failed', error.response?.data?.error || 'An error occurred during search', 'error');
       
       setResults([]);
     } finally {
@@ -88,58 +71,91 @@ const SearchPage = () => {
     }
   };
 
+  const showToast = (title, description, status) => {
+    setToastMessage({
+      title,
+      description,
+      status
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
   return (
-    <Container maxW="1200px">
-      <Box mb={8}>
-        <Heading size="lg" mb={2}>Semantic EHR Search</Heading>
-        <Text color="gray.600">
+    <div className="search-container">
+      <div className="search-header">
+        <h1 className="page-title">Semantic EHR Search</h1>
+        <p className="page-description">
           Search through EHR notes using natural language or medical terms
-        </Text>
-      </Box>
+        </p>
+      </div>
       
-      <Tabs onChange={index => setActiveTab(index)} colorScheme="blue">
-        <TabList>
-          <Tab>Semantic Search</Tab>
-          <Tab>MCP Context</Tab>
-        </TabList>
+      <div className="tabs-container">
+        <div className="tab-list">
+          <button 
+            className={`tab-button ${activeTab === 0 ? 'active' : ''}`}
+            onClick={() => setActiveTab(0)}
+          >
+            Semantic Search
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 1 ? 'active' : ''}`}
+            onClick={() => setActiveTab(1)}
+          >
+            MCP Context
+          </button>
+        </div>
         
-        <TabPanels>
-          <TabPanel>
-            <Box mb={6}>
+        <div className="tab-panels">
+          <div className={`tab-panel ${activeTab === 0 ? 'active' : ''}`}>
+            <div className="search-bar-container">
               <SearchBar onSearch={handleSearch} isLoading={isLoading} />
-              <Text fontSize="sm" color="gray.500" mt={2}>
+              <p className="search-tip">
                 Try queries like: "patients with medication side effects" or "abnormal lab results in diabetic patients"
-              </Text>
-            </Box>
+              </p>
+            </div>
             
-            <Divider my={6} />
+            <hr className="divider" />
             
             <SearchResults 
               results={results} 
               query={searchStats.query}
               executionTimeMs={searchStats.executionTimeMs}
             />
-          </TabPanel>
+          </div>
           
-          <TabPanel>
-            <Box mb={6}>
+          <div className={`tab-panel ${activeTab === 1 ? 'active' : ''}`}>
+            <div className="search-bar-container">
               <SearchBar onSearch={handleSearch} isLoading={isLoading} />
-              <Text fontSize="sm" color="gray.500" mt={2}>
+              <p className="search-tip">
                 MCP context provides rich context for AI agents and applications
-              </Text>
-            </Box>
+              </p>
+            </div>
             
-            <Divider my={6} />
+            <hr className="divider" />
             
             <SearchResults 
               results={results} 
               query={searchStats.query}
               executionTimeMs={searchStats.executionTimeMs}
             />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Container>
+          </div>
+        </div>
+      </div>
+      
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`toast-notification toast-${toastMessage.status}`}>
+          <div className="toast-title">{toastMessage.title}</div>
+          {toastMessage.description && (
+            <div className="toast-description">{toastMessage.description}</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
