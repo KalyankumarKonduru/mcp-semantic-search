@@ -18,13 +18,42 @@ INDEX_TYPE = os.environ.get("INDEX_TYPE", "flat")
 DIMENSION = int(os.environ.get("DIMENSION", "768"))  # BioBERT dimension
 API_KEY = os.environ.get("SERVICE_API_KEY")
 
-# Initialize the FAISS index manager
-index_manager = FAISSIndexManager(
-    index_type=INDEX_TYPE,
-    dimension=DIMENSION,
-    index_path=INDEX_PATH,
-    metadata_path=METADATA_PATH
-)
+# Create data directory if it doesn't exist
+os.makedirs(os.path.dirname(INDEX_PATH), exist_ok=True)
+os.makedirs(os.path.dirname(METADATA_PATH), exist_ok=True)
+
+# Initialize the FAISS index manager with safer approach
+try:
+    # First try to check if the index file exists and has content
+    if os.path.exists(INDEX_PATH) and os.path.getsize(INDEX_PATH) > 0 and os.path.exists(METADATA_PATH) and os.path.getsize(METADATA_PATH) > 0:
+        print(f"Loading existing index from {INDEX_PATH}")
+        index_manager = FAISSIndexManager(
+            index_type=INDEX_TYPE,
+            dimension=DIMENSION,
+            index_path=INDEX_PATH,
+            metadata_path=METADATA_PATH
+        )
+    else:
+        # Create new index if files don't exist or are empty
+        print("Creating new index since no valid index found")
+        index_manager = FAISSIndexManager(
+            index_type=INDEX_TYPE,
+            dimension=DIMENSION,
+            index_path=None,
+            metadata_path=None
+        )
+        # Save the new index
+        index_manager.save(INDEX_PATH, METADATA_PATH)
+except Exception as e:
+    print(f"Error loading index: {str(e)}. Creating new index.")
+    index_manager = FAISSIndexManager(
+        index_type=INDEX_TYPE,
+        dimension=DIMENSION,
+        index_path=None,
+        metadata_path=None
+    )
+    # Save the new index
+    index_manager.save(INDEX_PATH, METADATA_PATH)
 
 # Initialize the vector retriever
 retriever = VectorRetriever(index_manager)

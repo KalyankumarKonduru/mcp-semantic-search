@@ -1,25 +1,6 @@
+// src/pages/SettingsPage.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Heading, 
-  Text,
-  FormControl,
-  FormLabel,
-  Input,
-  Button,
-  VStack,
-  useToast,
-  Divider,
-  Switch,
-  Select,
-  Badge,
-  Flex,
-  InputGroup,
-  InputRightElement,
-  IconButton
-} from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
+import './SettingsPage.css';
 
 const SettingsPage = () => {
   const [apiKey, setApiKey] = useState('');
@@ -27,7 +8,7 @@ const SettingsPage = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [embeddingModel, setEmbeddingModel] = useState('biobert');
-  const toast = useToast();
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Load settings on initial render
   useEffect(() => {
@@ -49,13 +30,7 @@ const SettingsPage = () => {
     localStorage.setItem('darkMode', darkMode.toString());
     localStorage.setItem('embeddingModel', embeddingModel);
     
-    toast({
-      title: 'Settings saved',
-      description: 'Your settings have been saved successfully',
-      status: 'success',
-      duration: 3000,
-      isClosable: true
-    });
+    showToast('Settings saved', 'Your settings have been saved successfully', 'success');
   };
 
   const handleResetSettings = () => {
@@ -70,110 +45,150 @@ const SettingsPage = () => {
       setDarkMode(false);
       setEmbeddingModel('biobert');
       
-      toast({
-        title: 'Settings reset',
-        description: 'All settings have been reset to defaults',
-        status: 'info',
-        duration: 3000,
-        isClosable: true
-      });
+      showToast('Settings reset', 'All settings have been reset to defaults', 'info');
     }
   };
 
+  const showToast = (title, description, status) => {
+    setToastMessage({
+      title,
+      description,
+      status
+    });
+    
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowApiKey(!showApiKey);
+  };
+
   return (
-    <Container maxW="800px">
-      <Box mb={8}>
-        <Heading size="lg" mb={2}>Settings</Heading>
-        <Text color="gray.600">
+    <div className="settings-container">
+      <div className="settings-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-description">
           Configure your semantic search application
-        </Text>
-      </Box>
+        </p>
+      </div>
       
-      <Box p={6} shadow="md" borderWidth="1px" borderRadius="md">
-        <VStack spacing={6} align="stretch">
-          <Heading size="md">API Configuration</Heading>
+      <div className="settings-card">
+        <div className="settings-form">
+          <h2 className="settings-section-title">API Configuration</h2>
           
-          <FormControl>
-            <FormLabel>API Endpoint</FormLabel>
-            <Input
+          <div className="form-group">
+            <label htmlFor="api-endpoint">API Endpoint</label>
+            <input
+              id="api-endpoint"
+              type="text"
               placeholder="http://localhost:3000/api/v1"
               value={apiEndpoint}
               onChange={(e) => setApiEndpoint(e.target.value)}
+              className="form-input"
             />
-          </FormControl>
+          </div>
           
-          <FormControl>
-            <FormLabel>API Key</FormLabel>
-            <InputGroup>
-              <Input
+          <div className="form-group">
+            <label htmlFor="api-key">API Key</label>
+            <div className="input-group">
+              <input
+                id="api-key"
                 type={showApiKey ? 'text' : 'password'}
                 placeholder="Enter your API key"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
+                className="form-input"
               />
-              <InputRightElement>
-                <IconButton
-                  icon={showApiKey ? <ViewOffIcon /> : <ViewIcon />}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                />
-              </InputRightElement>
-            </InputGroup>
-          </FormControl>
+              <button
+                type="button"
+                className="input-icon-button"
+                onClick={togglePasswordVisibility}
+                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+              >
+                {showApiKey ? (
+                  <span className="eye-icon">👁️</span>
+                ) : (
+                  <span className="eye-icon">👁️‍🗨️</span>
+                )}
+              </button>
+            </div>
+          </div>
           
-          <Divider />
+          <hr className="divider" />
           
-          <Heading size="md">Application Settings</Heading>
+          <h2 className="settings-section-title">Application Settings</h2>
           
-          <FormControl display="flex" alignItems="center">
-            <FormLabel htmlFor="dark-mode" mb="0">
+          <div className="form-group switch-group">
+            <label htmlFor="dark-mode" className="switch-label">
               Dark Mode
-            </FormLabel>
-            <Switch
-              id="dark-mode"
-              colorScheme="blue"
-              isChecked={darkMode}
-              onChange={(e) => setDarkMode(e.target.checked)}
-            />
-          </FormControl>
+            </label>
+            <label className="switch">
+              <input
+                id="dark-mode"
+                type="checkbox"
+                checked={darkMode}
+                onChange={(e) => setDarkMode(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
           
-          <FormControl>
-            <FormLabel>Embedding Model</FormLabel>
-            <Select
+          <div className="form-group">
+            <label htmlFor="embedding-model">Embedding Model</label>
+            <select
+              id="embedding-model"
               value={embeddingModel}
               onChange={(e) => setEmbeddingModel(e.target.value)}
+              className="form-select"
             >
               <option value="biobert">BioBERT</option>
               <option value="clinicalbert">ClinicalBERT</option>
               <option value="pubmedbert">PubMedBERT</option>
-            </Select>
-          </FormControl>
+            </select>
+          </div>
           
-          <Divider />
+          <hr className="divider" />
           
-          <Flex justify="space-between">
-            <Button colorScheme="blue" onClick={handleSaveSettings}>
+          <div className="button-group">
+            <button 
+              className="primary-button"
+              onClick={handleSaveSettings}
+            >
               Save Settings
-            </Button>
-            <Button variant="outline" colorScheme="red" onClick={handleResetSettings}>
+            </button>
+            <button 
+              className="danger-outline-button"
+              onClick={handleResetSettings}
+            >
               Reset to Defaults
-            </Button>
-          </Flex>
+            </button>
+          </div>
           
-          <Box>
-            <Heading size="sm" mb={2}>Current Configuration</Heading>
-            <Flex wrap="wrap" gap={2}>
-              <Badge colorScheme="blue">API: {apiEndpoint ? 'Configured' : 'Not Set'}</Badge>
-              <Badge colorScheme="green">Auth: {apiKey ? 'Configured' : 'Not Set'}</Badge>
-              <Badge colorScheme="purple">Model: {embeddingModel}</Badge>
-              <Badge colorScheme="gray">Theme: {darkMode ? 'Dark' : 'Light'}</Badge>
-            </Flex>
-          </Box>
-        </VStack>
-      </Box>
-    </Container>
+          <div className="current-config">
+            <h3 className="config-title">Current Configuration</h3>
+            <div className="badge-container">
+              <span className="badge badge-blue">API: {apiEndpoint ? 'Configured' : 'Not Set'}</span>
+              <span className="badge badge-green">Auth: {apiKey ? 'Configured' : 'Not Set'}</span>
+              <span className="badge badge-purple">Model: {embeddingModel}</span>
+              <span className="badge badge-gray">Theme: {darkMode ? 'Dark' : 'Light'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`toast-notification toast-${toastMessage.status}`}>
+          <div className="toast-title">{toastMessage.title}</div>
+          {toastMessage.description && (
+            <div className="toast-description">{toastMessage.description}</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

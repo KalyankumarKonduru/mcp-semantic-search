@@ -1,91 +1,72 @@
+// src/components/SearchResults.jsx
 import React from 'react';
-import { 
-  Box, 
-  VStack, 
-  Text, 
-  Badge, 
-  Divider,
-  Heading,
-  Flex,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText
-} from '@chakra-ui/react';
+import './SearchResults.css';
 
 const SearchResults = ({ results, query, executionTimeMs }) => {
   if (!results || results.length === 0) {
     return (
-      <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-        <Text>No results found for your query.</Text>
-      </Box>
+      <div className="empty-results">
+        <p>No results found for your query.</p>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Flex justify="space-between" mb={4}>
-        <Heading size="md">Search Results</Heading>
+    <div className="search-results">
+      <div className="results-header">
+        <h2 className="results-title">Search Results</h2>
         
-        <Flex gap={4}>
-          <Stat size="sm" textAlign="right">
-            <StatLabel>Results</StatLabel>
-            <StatNumber>{results.length}</StatNumber>
-          </Stat>
+        <div className="results-stats">
+          <div className="stat-item">
+            <div className="stat-label">Results</div>
+            <div className="stat-value">{results.length}</div>
+          </div>
           
-          <Stat size="sm" textAlign="right">
-            <StatLabel>Time</StatLabel>
-            <StatNumber>{executionTimeMs}ms</StatNumber>
-          </Stat>
-        </Flex>
-      </Flex>
+          <div className="stat-item">
+            <div className="stat-label">Time</div>
+            <div className="stat-value">{executionTimeMs}ms</div>
+          </div>
+        </div>
+      </div>
       
-      <VStack spacing={4} align="stretch">
+      <div className="results-list">
         {results.map((result, index) => (
-          <Box 
-            key={index} 
-            p={5} 
-            shadow="md" 
-            borderWidth="1px" 
-            borderRadius="md"
-            _hover={{ shadow: 'lg' }}
-            transition="box-shadow 0.3s"
-          >
-            <Flex justify="space-between" mb={2}>
-              <Flex wrap="wrap" gap={2}>
-                <Badge colorScheme="blue">{result.metadata.note_type || 'Document'}</Badge>
+          <div key={index} className="result-item">
+            <div className="result-header">
+              <div className="badge-container">
+                <span className="badge badge-blue">{result.metadata.note_type || 'Document'}</span>
                 {result.metadata.department && (
-                  <Badge colorScheme="purple">{result.metadata.department}</Badge>
+                  <span className="badge badge-purple">{result.metadata.department}</span>
                 )}
                 {result.metadata.date && (
-                  <Badge colorScheme="green">{result.metadata.date}</Badge>
+                  <span className="badge badge-green">{result.metadata.date}</span>
                 )}
-              </Flex>
+              </div>
               
-              <Badge colorScheme="teal" variant="outline">
+              <span className="badge badge-outline">
                 Score: {result.score.toFixed(2)}
-              </Badge>
-            </Flex>
+              </span>
+            </div>
             
-            <Divider my={2} />
+            <hr className="divider" />
             
-            <Box mt={2}>
+            <div className="result-content">
               {result.highlight ? (
                 <div dangerouslySetInnerHTML={{ __html: result.highlight }} />
               ) : (
-                <Text>{result.text}</Text>
+                <p className="result-text">{result.text}</p>
               )}
-            </Box>
+            </div>
             
             {result.metadata.doc_id && (
-              <Text fontSize="xs" color="gray.500" mt={2}>
+              <p className="result-doc-id">
                 Document ID: {result.metadata.doc_id}
-              </Text>
+              </p>
             )}
-          </Box>
+          </div>
         ))}
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 };
 

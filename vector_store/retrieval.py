@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Dict, Any, Optional
-from .index_manager import FAISSIndexManager
+from index_manager import FAISSIndexManager
 
 class VectorRetriever:
     """

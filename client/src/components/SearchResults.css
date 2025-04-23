@@ -1,0 +1,133 @@
+/* src/components/SearchResults.css */
+.search-results {
+    width: 100%;
+  }
+  
+  .empty-results {
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: white;
+  }
+  
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .results-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .results-stats {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .stat-item {
+    text-align: right;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+    color: #718096;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .result-item {
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    transition: box-shadow 0.3s;
+  }
+  
+  .result-item:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .badge-blue {
+    background-color: #ebf8ff;
+    color: #3182ce;
+  }
+  
+  .badge-purple {
+    background-color: #faf5ff;
+    color: #805ad5;
+  }
+  
+  .badge-green {
+    background-color: #f0fff4;
+    color: #38a169;
+  }
+  
+  .badge-outline {
+    background-color: transparent;
+    border: 1px solid #4fd1c5;
+    color: #4fd1c5;
+  }
+  
+  .divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 8px 0;
+  }
+  
+  .result-content {
+    margin-top: 8px;
+  }
+  
+  .result-text {
+    line-height: 1.6;
+  }
+  
+  .result-doc-id {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #718096;
+  }
+  
+  /* Highlight styling */
+  .result-content mark,
+  .result-content em {
+    background-color: #fefcbf;
+    font-style: normal;
+    padding: 1px 2px;
+    border-radius: 2px;
+  }

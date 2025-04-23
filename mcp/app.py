@@ -3,13 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from typing import List, Dict, Any, Optional
 
-from .schema import (
+from schema import (
     MCPContextRequest, 
     MCPContextResponse, 
     MCPDocumentBatch,
     MCPResponse
 )
-from .provider import MCPProvider
+from provider import MCPProvider
 
 # Get configuration from environment
 EMBEDDING_SERVICE_URL = os.environ.get("EMBEDDING_SERVICE_URL", "http://embedding:8000")
@@ -76,3 +76,9 @@ async def health_check():
     Health check endpoint
     """
     return {"status": "ok", "service": "mcp-provider"}
+
+if __name__ == "__main__":
+    # Run the FastAPI server
+    import uvicorn
+    port = int(os.environ.get("PORT", 8002))
+    uvicorn.run(app, host="0.0.0.0", port=port)
