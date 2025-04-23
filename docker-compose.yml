@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # Node.js API 
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app/api
+      - ./node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - EMBEDDING_SERVICE_URL=http://embedding:8000
+      - VECTOR_STORE_URL=http://vector-store:8001
+      - MCP_SERVICE_URL=http://mcp:8002
+      - API_KEY=${API_KEY:-default-api-key}
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
+    depends_on:
+      - embedding
+      - vector-store
+      - mcp
+
+  # Python Embedding Service
+  embedding:
+    build:
+      context: .
+      dockerfile: docker/embedding.Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./embedding:/app/embedding
+      - ./models:/app/models
+      - model-cache:/root/.cache/huggingface
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8000
+      - MODEL_NAME=dmis-lab/biobert-base-cased-v1.1
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # Vector Store Service
+  vector-store:
+    build:
+      context: .
+      dockerfile: docker/vector-store.Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./vector_store:/app/vector_store
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8001
+      - INDEX_PATH=/app/data/faiss_index
+      - METADATA_PATH=/app/data/metadata.pickle
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
+
+  # MCP Provider
+  mcp:
+    build:
+      context: .
+      dockerfile: docker/mcp.Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./mcp:/app/mcp
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8002
+      - EMBEDDING_SERVICE_URL=http://embedding:8000
+      - VECTOR_STORE_SERVICE_URL=http://vector-store:8001
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
+    depends_on:
+      - embedding
+      - vector-store
+
+  # React Client (Optional)
+  client:
+    build:
+      context: .
+      dockerfile: docker/client.Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./client:/app/client
+      - /app/client/node_modules
+    environment:
+      - PORT=3001
+      - REACT_APP_API_URL=http://localhost:3000/api/v1
+    depends_on:
+      - api
+
+volumes:
+  model-cache:
