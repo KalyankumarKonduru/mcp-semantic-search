@@ -1,21 +1,21 @@
 const config = require('../config');
 
-/**
- * Simple API key authentication middleware
- */
 module.exports = (req, res, next) => {
-  // Skip auth in development mode if configured
+  // In dev you may skip auth
   if (process.env.NODE_ENV === 'development' && config.skipAuthInDev) {
     return next();
   }
-  
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
-  
-  if (!apiKey || apiKey !== config.apiKey) {
-    return res.status(401).json({
-      error: 'Unauthorized - Invalid API key'
-    });
+
+  // Grab either header
+  const apiKeyHeader = req.headers['x-api-key'];
+  const authHeader    = req.headers['authorization'];
+  const token = apiKeyHeader
+    || (authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : null);
+
+  if (!token || token !== config.apiKey) {
+    return res.status(401).json({ error: 'Unauthorized – Invalid API key' });
   }
-  
   next();
 };

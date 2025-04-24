@@ -16,92 +16,59 @@ from schema import (
 )
 
 class MCPProvider:
-    """
-    MCP provider implementation for EHR note context
-    """
-    
-    def __init__(
-        self,
-        embedding_service_url: str,
-        vector_store_service_url: str,
-        api_key: Optional[str] = None
-    ):
-        """
-        Initialize the MCP provider
-        
-        Args:
-            embedding_service_url: URL of the embedding service
-            vector_store_service_url: URL of the vector store service
-            api_key: API key for authentication (if needed)
-        """
+    def __init__(self, embedding_service_url: str, vector_store_service_url: str, api_key: Optional[str] = None):
         self.embedding_service_url = embedding_service_url
         self.vector_store_service_url = vector_store_service_url
         self.api_key = api_key
-    
+
     async def _get_headers(self) -> Dict[str, str]:
-        """Get headers for API requests"""
         headers = {"Content-Type": "application/json"}
         if self.api_key:
+            # Embedding service expects Authorization: Bearer …
             headers["Authorization"] = f"Bearer {self.api_key}"
+            # Vector-store expects x-api-key
+            headers["x-api-key"] = self.api_key
         return headers
-    
+
     async def ingest_documents(self, documents: List[Dict[str, Any]]) -> MCPResponse:
-        """
-        Ingest documents into the context system
-        
-        Args:
-            documents: List of documents with text and metadata
-            
-        Returns:
-            Response with ingestion status
-        """
         try:
-            # Format documents for embedding service
             embed_docs = [
                 {"text": doc["text"], "doc_id": doc["document_id"], "metadata": doc["metadata"]}
                 for doc in documents
             ]
-            
-            # Send to embedding service
+
             async with aiohttp.ClientSession() as session:
                 headers = await self._get_headers()
-                
-                # Step 1: Get embeddings
+
+                # 1) chunk + embed
                 async with session.post(
                     f"{self.embedding_service_url}/embed/documents",
                     json={"documents": embed_docs, "chunk": True},
                     headers=headers
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise ValueError(f"Embedding service error: {error_text}")
-                    
-                    embedding_result = await response.json()
-                
-                # Step 2: Store vectors
+                ) as resp_embed:
+                    if resp_embed.status != 200:
+                        raise ValueError(f"Embedding service error: {await resp_embed.text()}")
+                    embedding_result = await resp_embed.json()
+
+                # 2) add to vector store
                 chunks = embedding_result["chunks"]
                 async with session.post(
                     f"{self.vector_store_service_url}/vectors/add",
                     json={"chunks": chunks},
-                    headers=headers
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise ValueError(f"Vector store error: {error_text}")
-                    
-                    storage_result = await response.json()
-            
+                    headers=headers  # now carrying x-api-key
+                ) as resp_store:
+                    if resp_store.status != 200:
+                        raise ValueError(f"Vector store error: {await resp_store.text()}")
+                    storage_result = await resp_store.json()
+
             return MCPResponse(
                 success=True,
                 message=f"Successfully processed {len(documents)} documents into {len(chunks)} chunks",
                 data={"document_count": len(documents), "chunk_count": len(chunks)}
             )
-            
         except Exception as e:
-            return MCPResponse(
-                success=False,
-                message=f"Error processing documents: {str(e)}"
-            )
+            return MCPResponse(success=False, message=f"Error processing documents: {str(e)}")
+
     
     async def get_context(self, request: MCPContextRequest) -> MCPContextResponse:
         """

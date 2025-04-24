@@ -16,7 +16,7 @@ const SettingsPage = () => {
     const savedApiEndpoint = localStorage.getItem('apiEndpoint') || '';
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     const savedEmbeddingModel = localStorage.getItem('embeddingModel') || 'biobert';
-    
+
     setApiKey(savedApiKey);
     setApiEndpoint(savedApiEndpoint);
     setDarkMode(savedDarkMode);
@@ -24,46 +24,38 @@ const SettingsPage = () => {
   }, []);
 
   const handleSaveSettings = () => {
-    // Save to localStorage
     localStorage.setItem('apiKey', apiKey);
     localStorage.setItem('apiEndpoint', apiEndpoint);
     localStorage.setItem('darkMode', darkMode.toString());
     localStorage.setItem('embeddingModel', embeddingModel);
-    
+
     showToast('Settings saved', 'Your settings have been saved successfully', 'success');
   };
 
   const handleResetSettings = () => {
-    if (window.confirm('Are you sure you want to reset all settings?')) {
-      localStorage.removeItem('apiKey');
-      localStorage.removeItem('apiEndpoint');
-      localStorage.removeItem('darkMode');
-      localStorage.removeItem('embeddingModel');
-      
-      setApiKey('');
-      setApiEndpoint('');
-      setDarkMode(false);
-      setEmbeddingModel('biobert');
-      
-      showToast('Settings reset', 'All settings have been reset to defaults', 'info');
+    if (!window.confirm('Are you sure you want to reset all settings?')) {
+      return;
     }
-  };
+    localStorage.removeItem('apiKey');
+    localStorage.removeItem('apiEndpoint');
+    localStorage.removeItem('darkMode');
+    localStorage.removeItem('embeddingModel');
 
-  const showToast = (title, description, status) => {
-    setToastMessage({
-      title,
-      description,
-      status
-    });
-    
-    // Auto-hide toast after 5 seconds
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 5000);
+    setApiKey('');
+    setApiEndpoint('');
+    setDarkMode(false);
+    setEmbeddingModel('biobert');
+
+    showToast('Settings reset', 'All settings have been reset to defaults', 'info');
   };
 
   const togglePasswordVisibility = () => {
-    setShowApiKey(!showApiKey);
+    setShowApiKey(prev => !prev);
+  };
+
+  const showToast = (title, description, status) => {
+    setToastMessage({ title, description, status });
+    setTimeout(() => setToastMessage(null), 5000);
   };
 
   return (
@@ -74,11 +66,11 @@ const SettingsPage = () => {
           Configure your semantic search application
         </p>
       </div>
-      
+
       <div className="settings-card">
         <div className="settings-form">
           <h2 className="settings-section-title">API Configuration</h2>
-          
+
           <div className="form-group">
             <label htmlFor="api-endpoint">API Endpoint</label>
             <input
@@ -86,11 +78,11 @@ const SettingsPage = () => {
               type="text"
               placeholder="http://localhost:3000/api/v1"
               value={apiEndpoint}
-              onChange={(e) => setApiEndpoint(e.target.value)}
+              onChange={e => setApiEndpoint(e.target.value)}
               className="form-input"
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="api-key">API Key</label>
             <div className="input-group">
@@ -99,7 +91,7 @@ const SettingsPage = () => {
                 type={showApiKey ? 'text' : 'password'}
                 placeholder="Enter your API key"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={e => setApiKey(e.target.value)}
                 className="form-input"
               />
               <button
@@ -108,19 +100,17 @@ const SettingsPage = () => {
                 onClick={togglePasswordVisibility}
                 aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
               >
-                {showApiKey ? (
-                  <span className="eye-icon">👁️</span>
-                ) : (
-                  <span className="eye-icon">👁️‍🗨️</span>
-                )}
+                <span className="eye-icon">
+                  {showApiKey ? '👁️' : '👁️‍🗨️'}
+                </span>
               </button>
             </div>
           </div>
-          
+
           <hr className="divider" />
-          
+
           <h2 className="settings-section-title">Application Settings</h2>
-          
+
           <div className="form-group switch-group">
             <label htmlFor="dark-mode" className="switch-label">
               Dark Mode
@@ -130,18 +120,18 @@ const SettingsPage = () => {
                 id="dark-mode"
                 type="checkbox"
                 checked={darkMode}
-                onChange={(e) => setDarkMode(e.target.checked)}
+                onChange={e => setDarkMode(e.target.checked)}
               />
               <span className="slider round"></span>
             </label>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="embedding-model">Embedding Model</label>
             <select
               id="embedding-model"
               value={embeddingModel}
-              onChange={(e) => setEmbeddingModel(e.target.value)}
+              onChange={e => setEmbeddingModel(e.target.value)}
               className="form-select"
             >
               <option value="biobert">BioBERT</option>
@@ -149,43 +139,45 @@ const SettingsPage = () => {
               <option value="pubmedbert">PubMedBERT</option>
             </select>
           </div>
-          
+
           <hr className="divider" />
-          
+
           <div className="button-group">
-            <button 
-              className="primary-button"
-              onClick={handleSaveSettings}
-            >
+            <button className="primary-button" onClick={handleSaveSettings}>
               Save Settings
             </button>
-            <button 
+            <button
               className="danger-outline-button"
               onClick={handleResetSettings}
             >
               Reset to Defaults
             </button>
           </div>
-          
+
           <div className="current-config">
             <h3 className="config-title">Current Configuration</h3>
             <div className="badge-container">
-              <span className="badge badge-blue">API: {apiEndpoint ? 'Configured' : 'Not Set'}</span>
-              <span className="badge badge-green">Auth: {apiKey ? 'Configured' : 'Not Set'}</span>
-              <span className="badge badge-purple">Model: {embeddingModel}</span>
-              <span className="badge badge-gray">Theme: {darkMode ? 'Dark' : 'Light'}</span>
+              <span className="badge badge-blue">
+                API: {apiEndpoint ? 'Configured' : 'Not Set'}
+              </span>
+              <span className="badge badge-green">
+                Auth: {apiKey ? 'Configured' : 'Not Set'}
+              </span>
+              <span className="badge badge-purple">
+                Model: {embeddingModel}
+              </span>
+              <span className="badge badge-gray">
+                Theme: {darkMode ? 'Dark' : 'Light'}
+              </span>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Toast notification */}
+
       {toastMessage && (
         <div className={`toast-notification toast-${toastMessage.status}`}>
           <div className="toast-title">{toastMessage.title}</div>
-          {toastMessage.description && (
-            <div className="toast-description">{toastMessage.description}</div>
-          )}
+          <div className="toast-description">{toastMessage.description}</div>
         </div>
       )}
     </div>

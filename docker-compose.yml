@@ -10,14 +10,15 @@ services:
       - "3000:3000"
     volumes:
       - ./api:/app/api
-      - ./node_modules:/app/node_modules
+      - /app/node_modules
     environment:
       - NODE_ENV=development
       - PORT=3000
       - EMBEDDING_SERVICE_URL=http://embedding:8000
-      - VECTOR_STORE_URL=http://vector-store:8001
+      - VECTOR_STORE_SERVICE_URL=http://vector-store:8001
       - MCP_SERVICE_URL=http://mcp:8002
-      - API_KEY=${API_KEY:-default-api-key}
+      - SKIP_AUTH_IN_DEV=true
+      - API_KEY=${API_KEY:-kalyan}
       - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
     depends_on:
       - embedding
@@ -77,6 +78,7 @@ services:
       - EMBEDDING_SERVICE_URL=http://embedding:8000
       - VECTOR_STORE_SERVICE_URL=http://vector-store:8001
       - SERVICE_API_KEY=${SERVICE_API_KEY:-internal-service-key}
+      - API_KEY=${SERVICE_API_KEY:-internal-service-key}
     depends_on:
       - embedding
       - vector-store
