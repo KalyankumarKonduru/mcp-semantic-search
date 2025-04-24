@@ -1,39 +1,40 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+# /mnt/data/app.py
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from typing import List, Dict, Any, Optional
+from typing import List
 
 from schema import (
-    MCPContextRequest, 
-    MCPContextResponse, 
+    MCPContextRequest,
+    MCPContextResponse,
     MCPDocumentBatch,
     MCPResponse
 )
 from provider import MCPProvider
 
-# Get configuration from environment
-EMBEDDING_SERVICE_URL = os.environ.get("EMBEDDING_SERVICE_URL", "http://embedding:8000")
-VECTOR_STORE_SERVICE_URL = os.environ.get("VECTOR_STORE_SERVICE_URL", "http://vector-store:8001")
-API_KEY = os.environ.get("API_KEY")
+# Configuration from environment
+EMBEDDING_SERVICE_URL     = os.environ.get("EMBEDDING_SERVICE_URL", "http://embedding:8000")
+VECTOR_STORE_SERVICE_URL  = os.environ.get("VECTOR_STORE_SERVICE_URL", "http://vector-store:8001")
+API_KEY                   = os.environ.get("API_KEY")
 
-# Initialize the MCP provider
+# Initialize provider
 provider = MCPProvider(
     embedding_service_url=EMBEDDING_SERVICE_URL,
     vector_store_service_url=VECTOR_STORE_SERVICE_URL,
     api_key=API_KEY
 )
 
-# Create FastAPI app
 app = FastAPI(
     title="MCP Context Provider for EHR Notes",
     description="MCP-compliant API for providing semantic context from EHR notes",
     version="1.0.0"
 )
 
-# Add CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update for production
+    allow_origins=["*"],  # tighten for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,21 +48,18 @@ async def get_context(request: MCPContextRequest):
     return await provider.get_context(request)
 
 @app.post("/documents", response_model=MCPResponse)
-async def ingest_documents(batch: MCPDocumentBatch, background_tasks: BackgroundTasks):
+async def ingest_documents(batch: MCPDocumentBatch):
     """
-    Ingest documents into the context system
+    Ingest documents into the context system **synchronously**.
+    We block until embedding + vector storage completes,
+    so that clients can immediately query the new documents.
     """
-    # Convert to list of documents
+    # Convert Pydantic models to simple dicts
     documents = [doc.dict() for doc in batch.documents]
-    
-    # Process in background to avoid long-running request
-    background_tasks.add_task(provider.ingest_documents, documents)
-    
-    return MCPResponse(
-        success=True,
-        message=f"Processing {len(documents)} documents in the background",
-        data={"document_count": len(documents)}
-    )
+
+    # This now waits for the ingestion to finish
+    result = await provider.ingest_documents(documents)
+    return result
 
 @app.delete("/documents/{document_id}", response_model=MCPResponse)
 async def delete_document(document_id: str):

@@ -18,10 +18,10 @@ const SearchPage = () => {
   const handleSearch = async (searchParams) => {
     setIsLoading(true);
     setResults([]);
-    
+
     try {
       let response;
-      
+
       // Handle different search types based on the active tab
       if (activeTab === 0) {
         // Semantic search
@@ -34,10 +34,10 @@ const SearchPage = () => {
         } else {
           response = await searchApi.semanticSearch(searchParams.query, 10);
         }
-      } else if (activeTab === 1) {
+      } else {
         // MCP context
         response = await mcpApi.getContext(searchParams.query, 10);
-        
+
         // Convert MCP response format to search results format
         if (response.data && response.data.contexts) {
           response.data.results = response.data.contexts.map(context => ({
@@ -50,21 +50,26 @@ const SearchPage = () => {
               department: context.source.department
             }
           }));
-          
+
           response.data.executionTimeMs = response.data.metadata.query_time_ms;
         }
       }
-      
+
       setResults(response.data.results || []);
       setSearchStats({
         query: searchParams.query,
         executionTimeMs: response.data.executionTimeMs || 0
       });
-      
+
     } catch (error) {
       console.error('Search error:', error);
-      showToast('Search failed', error.response?.data?.error || 'An error occurred during search', 'error');
-      
+      // Extract a string description
+      const description =
+        error.response?.data?.error?.message ||
+        error.message ||
+        'An error occurred during search';
+
+      showToast('Search failed', description, 'error');
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -77,7 +82,7 @@ const SearchPage = () => {
       description,
       status
     });
-    
+
     // Auto-hide toast after 5 seconds
     setTimeout(() => {
       setToastMessage(null);
@@ -92,23 +97,23 @@ const SearchPage = () => {
           Search through EHR notes using natural language or medical terms
         </p>
       </div>
-      
+
       <div className="tabs-container">
         <div className="tab-list">
-          <button 
+          <button
             className={`tab-button ${activeTab === 0 ? 'active' : ''}`}
             onClick={() => setActiveTab(0)}
           >
             Semantic Search
           </button>
-          <button 
+          <button
             className={`tab-button ${activeTab === 1 ? 'active' : ''}`}
             onClick={() => setActiveTab(1)}
           >
             MCP Context
           </button>
         </div>
-        
+
         <div className="tab-panels">
           <div className={`tab-panel ${activeTab === 0 ? 'active' : ''}`}>
             <div className="search-bar-container">
@@ -117,16 +122,16 @@ const SearchPage = () => {
                 Try queries like: "patients with medication side effects" or "abnormal lab results in diabetic patients"
               </p>
             </div>
-            
+
             <hr className="divider" />
-            
-            <SearchResults 
-              results={results} 
+
+            <SearchResults
+              results={results}
               query={searchStats.query}
               executionTimeMs={searchStats.executionTimeMs}
             />
           </div>
-          
+
           <div className={`tab-panel ${activeTab === 1 ? 'active' : ''}`}>
             <div className="search-bar-container">
               <SearchBar onSearch={handleSearch} isLoading={isLoading} />
@@ -134,25 +139,23 @@ const SearchPage = () => {
                 MCP context provides rich context for AI agents and applications
               </p>
             </div>
-            
+
             <hr className="divider" />
-            
-            <SearchResults 
-              results={results} 
+
+            <SearchResults
+              results={results}
               query={searchStats.query}
               executionTimeMs={searchStats.executionTimeMs}
             />
           </div>
         </div>
       </div>
-      
+
       {/* Toast notification */}
       {toastMessage && (
         <div className={`toast-notification toast-${toastMessage.status}`}>
           <div className="toast-title">{toastMessage.title}</div>
-          {toastMessage.description && (
-            <div className="toast-description">{toastMessage.description}</div>
-          )}
+          <div className="toast-description">{toastMessage.description}</div>
         </div>
       )}
     </div>

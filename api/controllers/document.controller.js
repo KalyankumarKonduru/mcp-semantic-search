@@ -1,46 +1,106 @@
 const axios = require('axios');
 const config = require('../config');
+const pdf = require('pdf-parse');    // install with `npm install pdf-parse`
 
 /**
- * Create a single document
+ * Handle multipart file upload, convert to text, then forward to MCP
+ */
+exports.uploadDocument = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Parse metadata JSON if provided
+    let metadata = {};
+    if (req.body.metadata) {
+      try {
+        metadata = JSON.parse(req.body.metadata);
+      } catch {
+        return res.status(400).json({ error: 'Invalid metadata JSON' });
+      }
+    }
+
+    // Extract text from buffer
+    let text = '';
+    const mime = req.file.mimetype;
+    if (mime === 'application/pdf') {
+      const data = await pdf(req.file.buffer);
+      text = data.text;
+    } else {
+      text = req.file.buffer.toString('utf8');
+    }
+
+    // Assign or preserve document_id
+    const documentId =
+      metadata.document_id ||
+      `doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    metadata.document_id = documentId;
+
+    // Forward to MCP
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': config.serviceApiKey
+    };
+    const mcpRes = await axios.post(
+      `${config.mcpServiceUrl}/documents`,
+      { documents: [{ text, document_id: documentId, metadata }] },
+      { headers }
+    );
+
+    if (!mcpRes.data.success) {
+      return res
+        .status(500)
+        .json({ error: mcpRes.data.message || 'MCP ingestion failed' });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'File uploaded & document ingested',
+      documentId
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Create from raw text
  */
 exports.createDocument = async (req, res, next) => {
   try {
-    const { text, metadata } = req.body;
-    
+    const { text, metadata = {} } = req.body;
     if (!text) {
-      return res.status(400).json({
-        error: 'Document text is required'
-      });
+      return res.status(400).json({ error: 'Document text is required' });
     }
-    
-    // Generate a unique document ID if not provided
-    const documentId = req.body.documentId || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-    
-    // Forward to MCP service
-    const response = await axios.post(`${config.mcpServiceUrl}/documents`, {
-      documents: [
-        {
-          text,
-          document_id: documentId,
-          metadata: metadata || {}
-        }
-      ]
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.serviceApiKey}`
-      }
-    });
-    
+
+    const documentId =
+      metadata.document_id ||
+      `doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    metadata.document_id = documentId;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': config.serviceApiKey
+    };
+    const mcpRes = await axios.post(
+      `${config.mcpServiceUrl}/documents`,
+      { documents: [{ text, document_id: documentId, metadata }] },
+      { headers }
+    );
+    if (!mcpRes.data.success) {
+      return res
+        .status(500)
+        .json({ error: mcpRes.data.message || 'MCP ingestion failed' });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Document created successfully',
       documentId
     });
-    
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -50,38 +110,45 @@ exports.createDocument = async (req, res, next) => {
 exports.createDocumentBatch = async (req, res, next) => {
   try {
     const { documents } = req.body;
-    
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
-      return res.status(400).json({
-        error: 'Valid documents array is required'
-      });
+    if (!Array.isArray(documents) || documents.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Valid documents array is required' });
     }
-    
-    // Format documents for MCP service
-    const formattedDocs = documents.map(doc => ({
-      text: doc.text,
-      document_id: doc.documentId || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      metadata: doc.metadata || {}
-    }));
-    
-    // Forward to MCP service
-    const response = await axios.post(`${config.mcpServiceUrl}/documents`, {
-      documents: formattedDocs
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.serviceApiKey}`
-      }
+
+    const formattedDocs = documents.map((doc) => {
+      const id =
+        doc.document_id ||
+        `doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      return {
+        text: doc.text,
+        document_id: id,
+        metadata: { ...doc.metadata, document_id: id }
+      };
     });
-    
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': config.serviceApiKey
+    };
+    const mcpRes = await axios.post(
+      `${config.mcpServiceUrl}/documents`,
+      { documents: formattedDocs },
+      { headers }
+    );
+    if (!mcpRes.data.success) {
+      return res
+        .status(500)
+        .json({ error: mcpRes.data.message || 'MCP batch ingestion failed' });
+    }
+
     res.status(201).json({
       success: true,
-      message: `Batch of ${documents.length} documents created successfully`,
-      documentIds: formattedDocs.map(doc => doc.document_id)
+      message: `Batch of ${formattedDocs.length} documents created successfully`,
+      documentIds: formattedDocs.map((d) => d.document_id)
     });
-    
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -91,24 +158,17 @@ exports.createDocumentBatch = async (req, res, next) => {
 exports.getDocument = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
-    // Forward to vector store service
-    const response = await axios.get(`${config.vectorStoreServiceUrl}/vectors/document/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${config.serviceApiKey}`
-      }
-    });
-    
-    if (!response.data || response.data.success === false) {
-      return res.status(404).json({
-        error: 'Document not found'
-      });
+    const headers = { 'x-api-key': config.serviceApiKey };
+    const vsRes = await axios.get(
+      `${config.vectorStoreServiceUrl}/vectors/document/${id}`,
+      { headers }
+    );
+    if (!vsRes.data.success) {
+      return res.status(404).json({ error: 'Document not found' });
     }
-    
-    res.json(response.data);
-    
-  } catch (error) {
-    next(error);
+    res.json(vsRes.data);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -118,18 +178,14 @@ exports.getDocument = async (req, res, next) => {
 exports.deleteDocument = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
-    // Forward to MCP service
-    const response = await axios.delete(`${config.mcpServiceUrl}/documents/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${config.serviceApiKey}`
-      }
-    });
-    
-    res.json(response.data);
-    
-  } catch (error) {
-    next(error);
+    const headers = { 'x-api-key': config.serviceApiKey };
+    const mcpRes = await axios.delete(
+      `${config.mcpServiceUrl}/documents/${id}`,
+      { headers }
+    );
+    res.json(mcpRes.data);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -139,22 +195,13 @@ exports.deleteDocument = async (req, res, next) => {
 exports.listDocuments = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, filter } = req.query;
-    
-    // Forward to vector store service
-    const response = await axios.get(`${config.vectorStoreServiceUrl}/vectors/documents`, {
-      params: {
-        page,
-        limit,
-        filter
-      },
-      headers: {
-        'Authorization': `Bearer ${config.serviceApiKey}`
-      }
-    });
-    
-    res.json(response.data);
-    
-  } catch (error) {
-    next(error);
+    const headers = { 'x-api-key': config.serviceApiKey };
+    const vsRes = await axios.get(
+      `${config.vectorStoreServiceUrl}/vectors/documents`,
+      { params: { page, limit, filter }, headers }
+    );
+    res.json(vsRes.data);
+  } catch (err) {
+    next(err);
   }
 };
